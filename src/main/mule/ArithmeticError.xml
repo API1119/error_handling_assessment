@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="ArithmeticErrorFlow" doc:id="48d0e1ac-ae8d-4476-bb1f-0f015a22607a" >
+		<http:listener doc:name="Listener" doc:id="1f6b7fe7-6f8d-4a76-becc-15e88014bd5a" config-ref="HTTP_Listener_config" path="/add"/>
+		<logger level="INFO" doc:name="Start Logger" doc:id="b5ba1935-4b70-487a-ac88-555f32b90215" message="Startof addition Flow"/>
+		<try doc:name="Try" doc:id="dcbae164-8904-46fd-a307-232e151c204a" >
+			<validation:is-number doc:name="Is valid num1" doc:id="37b7f870-e13f-41eb-bb37-743969508ac3" value="#[payload.num1]" numberType="INTEGER" />
+			<validation:is-number numberType="INTEGER" doc:name="Is valid num2" doc:id="760f5c33-4c14-472c-9635-a3029b8aeb4b" value="#[payload.num2]" />
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0045ea56-59bf-4e16-abb5-a3ad804a5b7f" >
+					<raise-error doc:name="Raise error" doc:id="e6b98094-1109-4c8a-bded-1d674cf2c0b5" type="INVALID:NUMBER" description="Please enter valid number" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="Result" doc:id="19b2da29-109e-4384-acdf-9495876a675b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Result": payload.num1 + payload.num2
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="End Logger" doc:id="e10cb886-f916-40f4-9e58-1092ab1dbc39" message="End of addition Flow"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="da00b28a-1e40-406e-9f57-5143fd10261e" type="INVALID:NUMBER">
+				<ee:transform doc:name="errorResponse" doc:id="1f024aa1-2f26-4c04-817c-62b6830b1c03" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorType": error.errorType.namespace,
+	"error-cause": error.cause.message,
+	"error-description": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

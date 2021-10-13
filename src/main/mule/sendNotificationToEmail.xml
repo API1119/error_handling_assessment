@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="f50397a0-cd00-46a4-8d09-fba5b32e40ef" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="a5df8073-87c2-43b7-a61f-22cc2a5fd3de" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" database="errorhandler" />
+	</db:config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="295e91d1-6c1a-4e25-9bd5-92515f4e29c3" >
+		<email:smtp-connection host="smtp.gmail.com" port="587" connectionTimeout="30" readTimeout="30" writeTimeout="30">
+			<email:properties >
+				<email:property key='mail.smtp.starttls.enable' value='true' />
+			</email:properties>
+		</email:smtp-connection>
+	</email:smtp-config>
+	<flow name="errorhandler_assesmentFlow" doc:id="c2c21301-6637-4aa7-a04b-ba3d0d433293" >
+		<http:listener doc:name="Listener" doc:id="fe63a89e-1589-4a90-9606-1014a1aa8b83" config-ref="HTTP_Listener_config" path="/error" allowedMethods="POST"/>
+		<logger level="INFO" doc:name="Start Logger" doc:id="c6a13131-0057-49f3-9feb-598e90098c7e" />
+		<set-variable value="#[payload]" doc:name="Records" doc:id="72a307d8-6157-4dc6-b7bf-a716c2f847fc" variableName="records"/>
+		<foreach doc:name="For Each" doc:id="5e2e7740-f018-4699-94e5-2aee75459b48" collection="#[vars.records]">
+			<try doc:name="Try" doc:id="5c8f8ae7-b85f-4908-b47e-325ecad5954e" >
+				<db:insert doc:name="Insert" doc:id="ef4debf4-071d-4756-b4e0-9b995b45641a" config-ref="Database_Config">
+					<db:sql ><![CDATA[INSERT INTO error(Eid,Ename,Ecity) VALUES(:Eid,:Ename,:Ecity)]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	"Eid": payload.Eid,
+	"Ename": payload.Ename,
+	"Ecity": payload.Ename
+}]]]></db:input-parameters>
+				</db:insert>
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="fe9469c5-a159-45ab-b74a-558287af976a" >
+						<flow-ref doc:name="Flow Reference" doc:id="27bd1a0b-21ab-4ba4-aa9b-37c6089cb682" name="sendNotification"/>
+					</on-error-continue>
+				</error-handler>
+			</try>
+			<logger level="INFO" doc:name="Logger" doc:id="d3c8cb82-4be6-4964-9013-ce1107ac659e" />
+		</foreach>
+	</flow>
+	<sub-flow name="sendNotification" doc:id="f1cd3cf7-4023-47e5-b4ea-d191aa6d0b00" >
+		<logger level="INFO" doc:name="Notification send" doc:id="635a38d1-4c04-4c8c-8134-125d5f313fc3" message="#[payload]"/>
+		<email:send doc:name="Send" doc:id="002effab-1949-4424-a0c2-60cf4a5d3c77" config-ref="Email_SMTP" fromAddress="ashish.171477singh@gmail.com" subject="Failed payload">
+			<email:to-addresses >
+				<email:to-address value="ashish.578sin@gmail.com" />
+			</email:to-addresses>
+			<email:body >
+				<email:content ><![CDATA[#[output application/json --- payload]]]></email:content>
+			</email:body>
+		</email:send>
+	</sub-flow>
+</mule>

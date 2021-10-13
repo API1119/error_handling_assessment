@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="ArithmeticSuccessErrorFlow" doc:id="d2de25e3-c618-4f20-91b8-f09793c2affd" >
+		<http:listener doc:name="Post /newadd" doc:id="48366dd4-780a-4c7b-9f0b-eb02dee3f74c" config-ref="HTTP_Listener_config" path="/newadd"/>
+		<logger level="INFO" doc:name="Start Logger" doc:id="c5b2b5c9-4939-46fc-9397-3323e9ef05a5" message="Start Logger"/>
+		<set-variable value="#[payload]" doc:name="originalPayload" doc:id="23a27b8d-5d6d-4d2b-9d79-33426927fd46" variableName="originalPayload"/>
+		<try doc:name="Try" doc:id="c9724f02-ae05-4e1d-8a62-19846ab2a0f5" >
+			<validation:is-number numberType="INTEGER" doc:name="Num1 check" doc:id="38af6a3e-4056-42f2-b4e8-31a57f1943cc" value="#[payload.num1]" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b1ef55b5-0358-4304-b521-d4e7b05c29d9" >
+					<set-variable value="#[1 as Number]" doc:name="changeNum1" doc:id="cb94dc56-8536-4c52-9e35-6d834ede0a36" variableName="changeNum1"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<try doc:name="Try" doc:id="948dd788-1374-4cbf-9ae5-42de856fd62f" >
+			<validation:is-number numberType="INTEGER" doc:name="Num2 Check" doc:id="c7f66019-fa0e-49c5-8802-967267240270" value="#[payload.num2]"/>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="d1f3a7b6-139a-4dcd-ac1c-d5111013a724" >
+					<set-variable value="#[1 as Number]" doc:name="changeNum2" doc:id="2e42c674-9d66-4080-942a-7973049e3f95" variableName="changeNum2"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="Result addition" doc:id="daa8106c-c44e-4def-9e6f-6d2c08f27cda" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"additionResult": (vars.changeNum1 default vars.originalPayload.num1) + (vars.changeNum2 default vars.originalPayload.num2)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="END Logger" doc:id="5d04d23a-54fe-4775-92c0-0d7efdbe09b7" message="#[payload]"/>
+	</flow>
+</mule>
